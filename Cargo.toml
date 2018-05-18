@@ -1,0 +1,6 @@
+[package]
+name = "domodoro"
+version = "0.1.0"
+authors = ["Daniel Olano <danielolanoc@gmail.com>"]
+
+[dependencies]
