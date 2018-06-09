@@ -45,7 +45,7 @@ fn main() {
     handle.join().unwrap()
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 enum State {
     Stop,
     Pause,
@@ -57,17 +57,21 @@ enum State {
 struct Pomodoro {
     dur: Duration,
     brk: Duration,
+    pomodoros: i16,
     prev_state: State,
     state: State,
 }
 
 const MAX_PAUSE_TIME: u64 = 3_600;
+const LONG_BREAK_AFTER: i16 = 4;
+const LONG_BREAK_RATIO: i16 = 4;
 
 impl Pomodoro {
     fn new(dur: Duration, brk: Duration) -> Pomodoro {
         Pomodoro {
             dur,
             brk,
+            pomodoros: 0,
             prev_state: State::Pause,
             state: State::Pause,
         }
@@ -80,10 +84,14 @@ impl Pomodoro {
     fn change(&mut self, state: State) {
         self.prev_state = self.state;
         self.state = state;
+        if state == State::Work {
+            self.pomodoros += 1;
+            println!("pomodoros -> {}", self.pomodoros);
+        }
         let dur = match state {
             State::Work => self.dur,
             State::ShortBreak => self.brk,
-            State::LongBreak => self.brk * 4,
+            State::LongBreak => self.brk * LONG_BREAK_RATIO,
             State::Pause => Duration::from_secs(MAX_PAUSE_TIME),
             State::Stop => Duration::from_secs(0),
         };
@@ -100,7 +108,11 @@ impl Iterator for Pomodoro {
 
     fn next(&mut self) -> Option<State> {
         let next = match self.state {
-            State::Work => State::ShortBreak,
+            State::Work => if self.pomodoros % LONG_BREAK_AFTER != 0 {
+                State::ShortBreak
+            } else {
+                State::LongBreak
+            },
             State::ShortBreak => State::Work,
             State::LongBreak => State::Work,
             State::Pause => self.prev_state,
